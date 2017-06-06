@@ -83,6 +83,7 @@ class Parser
      */
     public function parseContent($content)
     {
+
         // Create structure using TCPDF Parser.
         ob_start();
         @$parser = new \TCPDF_PARSER(ltrim($content));
@@ -100,6 +101,7 @@ class Parser
 
         // Create destination object.
         $document      = new Document();
+
         $this->objects = array();
 
         foreach ($data as $id => $structure) {
@@ -142,13 +144,16 @@ class Parser
      */
     protected function parseObject($id, $structure, $document)
     {
+
         $header  = new Header(array(), $document);
         $content = '';
 
         foreach ($structure as $position => $part) {
+
             switch ($part[0]) {
                 case '[':
                     $elements = array();
+
 
                     foreach ($part[1] as $sub_element) {
                         $sub_type   = $sub_element[0];
@@ -164,9 +169,12 @@ class Parser
                     break;
 
                 case 'stream':
+
+
                     $content = isset($part[3][0]) ? $part[3][0] : $part[1];
 
                     if ($header->get('Type')->equals('ObjStm')) {
+
                         $match = array();
 
                         // Split xrefs and contents.
@@ -181,7 +189,6 @@ class Parser
                           PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
                         );
                         $table = array();
-
                         foreach ($xrefs as $xref) {
                             list($id, $position) = explode(' ', trim($xref));
                             $table[$position] = $id;
@@ -196,7 +203,6 @@ class Parser
                             $id            = $ids[$index] . '_0';
                             $next_position = isset($positions[$index + 1]) ? $positions[$index + 1] : strlen($content);
                             $sub_content   = substr($content, $position, $next_position - $position);
-
                             $sub_header         = Header::parse($sub_content, $document);
                             $object             = Object::factory($document, $sub_header, '');
                             $this->objects[$id] = $object;

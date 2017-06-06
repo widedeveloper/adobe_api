@@ -263,6 +263,7 @@ class Page extends Object
 
 				$header   = new Header(array(), $this->document);
 				$contents = new Object($this->document, $header, $new_content);
+
 			}
 
 			return $contents->getTextArray($this);
@@ -270,4 +271,6 @@ class Page extends Object
 
 		return array();
 	}
+
+
 }

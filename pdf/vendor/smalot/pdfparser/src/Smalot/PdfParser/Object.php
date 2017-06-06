@@ -339,6 +339,23 @@ class Object
                         break;
 
                     case 'Tm':
+                    /*
+                        $args = preg_split('/\s/s', $command[self::COMMAND]);
+                        $y    = array_pop($args);
+                        $x    = array_pop($args);
+                        if ($current_position_tm['x'] !== false) {
+                            $delta = abs(floatval($x) - floatval($current_position_tm['x']));
+                            if ($delta > 500) {
+                                $text .= "<br>";
+                            }
+                            if ($delta > 100 && $delta<500) {
+                                $text .= "-------------";
+                            }
+                        }
+                        $current_position_tm = array('x' => $x, 'y' => $y);
+                        break;
+
+                        */
                         $args = preg_split('/\s/s', $command[self::COMMAND]);
                         $y    = array_pop($args);
                         $x    = array_pop($args);
@@ -437,49 +454,77 @@ class Object
 	 */
 	public function getTextArray(Page $page = null)
 	{
-		$text                = array();
+
+		//$text=array();
 		$sections            = $this->getSectionsText($this->content);
 		$current_font        = new Font($this->document);
+    $current_position_td = array('x' => false, 'y' => false);
+    $current_position_tm = array('x' => false, 'y' => false);
+    $new_word=true;
+    $end_ck = false;
+    $i=0;$j = 0;
+    $start =true;
+  //  var_dump($sections);exit;
 
 		foreach ($sections as $section) {
-
-			$commands = $this->getCommandsText($section);
+      $commands = $this->getCommandsText($section);
 
 			foreach ($commands as $command) {
 
 				switch ($command[self::OPERATOR]) {
 					// set character spacing
 					case 'Tc':
+
 						break;
 
 					// move text current point
 					case 'Td':
+
 						break;
 
 					// move text current point and set leading
 					case 'TD':
+
 						break;
 
 					case 'Tf':
 						list($id,) = preg_split('/\s/s', $command[self::COMMAND]);
 						$id           = trim($id, '/');
 						$current_font = $page->getFont($id);
+            $new_word=true;
+          //  echo "=========================================================================<br>";
 						break;
 
 					case "'":
 					case 'Tj':
+
 						$command[self::COMMAND] = array($command);
 					case 'TJ':
+
+
 						// Skip if not previously defined, should never happened.
 						if (is_null($current_font)) {
 							// Fallback
 							// TODO : Improve
-							$text[] = $command[self::COMMAND][0][self::COMMAND];
+              if($new_word){
+                  $text[$i][$j] = $command[self::COMMAND][0][self::COMMAND];$j++;
+              }else{
+                  $text[$i][count($text[$i])-1] .= $command[self::COMMAND][0][self::COMMAND];
+              }
+              $new_word=true;
 							continue;
 						}
 
 						$sub_text = $current_font->decodeText($command[self::COMMAND]);
-						$text[] = $sub_text;
+
+            if($new_word){
+                $text[$i][$j] = $sub_text;$j++;
+            }else{
+              //echo $i ;exit;
+                $text[$i][count($text[$i])-1] .= $sub_text;
+            }
+            $new_word=true;
+
 						break;
 
 					// set leading
@@ -487,6 +532,57 @@ class Object
 						break;
 
 					case 'Tm':
+            $args = preg_split('/\s/s', $command[self::COMMAND]);
+            $y    = array_pop($args);
+            $x    = array_pop($args);
+
+            if ($current_position_tm['x'] !== false) {
+                 $delta = abs(floatval($x) - floatval($current_position_tm['x']));
+                /*    echo "x-position==>".$x."<br>";
+                  echo "delta==>".$delta."<br>";
+                  echo "text==>".$text[$i][count($text[$i])-1]."<br>";
+                  echo "----------------<br><br>";
+
+             if ($x == '30' || $x == '31.25' ) {
+                    //$text[$i] .= "<br>";
+                  //  echo $x."<br>";
+                  //  echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+                  if($start ==true){
+                    $start =false;
+                  }else{
+                    $i++;
+                    $j = 0;
+                    continue;
+                  }
+
+                }*/
+
+                if($x == '30' || $x == '31.25' ){
+                  if($delta > 400){
+                    $text[$i][$j]= "-------------";$j++;
+                    $new_word=true;
+                  }
+                  if($start ==true){
+                    $start =false;
+                  }else{
+                    $i++;
+                    $j = 0;
+                    continue;
+                  }
+                }else{
+                  if($delta > 100 && $x >70){
+                    $count = floor($delta / 100);
+                    for($k = 0;$k<$count ;$k++){
+                      $text[$i][$j]= "-------------";$j++;
+                    }
+                    $new_word =true;
+                  }
+
+                }
+
+            }
+            $current_position_tm = array('x' => $x, 'y' => $y);
+            $new_word=false;
 						break;
 
 					// set super/subscripting text rise
@@ -504,6 +600,7 @@ class Object
 
 					// move to start of next line
 					case 'T*':
+
 						//$text .= "\n";
 						break;
 
@@ -515,7 +612,7 @@ class Object
 							$args = preg_split('/\s/s', $command[self::COMMAND]);
 							$id   = trim(array_pop($args), '/ ');
 							if ($xobject = $page->getXObject($id)) {
-								$text[] = $xobject->getText($page);
+								$text[$i][$j] = $xobject->getText($page);
 							}
 						}
 						break;
@@ -556,10 +653,20 @@ class Object
 
 					default:
 				}
+        /*$k=$command;
+        foreach($k as $key1=>$a){
+          echo $key1."======";
+            var_dump($a);
+            echo "<br>";
+          }
+
+          echo "<br>";
+          if(count($text[$i])>0)echo "test[".$i."][".$j."]=>".$text[$i][count($text[$i])-1];
+          echo "<br>--------------------------------------------<br>";
+*/
 			}
 		}
-
-		return $text;
+  		return $text;
 	}
 
 
@@ -731,16 +838,21 @@ class Object
      */
     public static function factory(Document $document, Header $header, $content)
     {
+
+
         switch ($header->get('Type')->getContent()) {
+
             case 'XObject':
                 switch ($header->get('Subtype')->getContent()) {
                     case 'Image':
                         return new Image($document, $header, $content);
 
                     case 'Form':
+
                         return new Form($document, $header, $content);
 
                     default:
+
                         return new Object($document, $header, $content);
                 }
                 break;
@@ -752,6 +864,7 @@ class Object
                 return new Page($document, $header, $content);
 
             case 'Encoding':
+
                 return new Encoding($document, $header, $content);
 
             case 'Font':
